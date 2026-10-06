@@ -1,0 +1,19 @@
+{
+  "name": "@even-chatgpt/g2-client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5173",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@even-chatgpt/protocol": "0.1.0",
+    "@evenrealities/even_hub_sdk": "^0.0.14"
+  },
+  "devDependencies": {
+    "vite": "^7.1.9"
+  }
+}
+

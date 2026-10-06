@@ -1,0 +1,16 @@
+node_modules/
+dist/
+coverage/
+*.ehpk
+*.log
+*.pcm
+*.wav
+.env
+.env.*
+!.env.example
+apps/*/.env
+apps/*/.env.*
+!apps/*/.env.example
+.DS_Store
+Thumbs.db
+

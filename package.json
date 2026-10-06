@@ -1,0 +1,34 @@
+{
+  "name": "even-chatgpt",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Voice-first Even G2 client for local Codex tasks and desktop tools.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "postinstall": "npm run build -w @even-chatgpt/protocol",
+    "dev:g2": "npm run dev -w @even-chatgpt/g2-client",
+    "dev:agent": "npm run dev -w @even-chatgpt/desktop-agent",
+    "build": "npm run build -w @even-chatgpt/protocol && npm run build -w @even-chatgpt/g2-client && npm run build -w @even-chatgpt/desktop-agent",
+    "typecheck": "npm run build -w @even-chatgpt/protocol && npm run typecheck --workspaces --if-present",
+    "check:accounts": "npm run check:accounts -w @even-chatgpt/desktop-agent",
+    "check:voice": "npm run build -w @even-chatgpt/desktop-agent && node scripts/check-voice-providers.mjs",
+    "check:agent": "node scripts/check-agent.mjs",
+    "test:voice-live": "npm run build -w @even-chatgpt/desktop-agent && node scripts/test-live-voice.mjs",
+    "test:agent-live": "node scripts/test-agent-live.mjs",
+    "simulator": "evenhub-simulator http://localhost:5173 --automation-port 9898",
+    "check:release-secrets": "node scripts/check-release-secrets.mjs",
+    "pack:g2": "npm run build -w @even-chatgpt/g2-client && npm run check:release-secrets && evenhub pack apps/g2-client/app.json apps/g2-client/dist -o even-chatgpt.ehpk"
+  },
+  "engines": {
+    "node": ">=22.6"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}
+

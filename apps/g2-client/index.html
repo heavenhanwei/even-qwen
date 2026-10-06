@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#07130d" />
+    <title>Even ChatGPT</title>
+  </head>
+  <body>
+    <main>
+      <h1>Even ChatGPT</h1>
+      <p id="status">Starting…</p>
+      <pre id="details"></pre>
+      <form id="connection-form">
+        <label>
+          Desktop Agent WebSocket URL
+          <input id="agent-url" name="agentUrl" type="url" inputmode="url" placeholder="wss://agent.example.com" required />
+        </label>
+        <label>
+          Pairing token
+          <input id="pairing-token" name="pairingToken" type="password" autocomplete="off" placeholder="Stored only on this phone" />
+        </label>
+        <button type="submit">Save and reconnect</button>
+      </form>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
+
