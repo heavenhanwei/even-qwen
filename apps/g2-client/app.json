@@ -10,6 +10,11 @@
     {
       "name": "g2-microphone",
       "desc": "Captures voice commands when the user explicitly starts listening."
+    },
+    {
+      "name": "network",
+      "desc": "Connects to the user's desktop agent through the configured secure WebSocket endpoint.",
+      "whitelist": ["wss://even-chatgpt.ifelse.work"]
     }
   ],
   "supported_languages": ["en", "zh"]
