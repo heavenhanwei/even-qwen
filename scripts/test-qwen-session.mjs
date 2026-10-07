@@ -1,7 +1,12 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { WebSocketServer } from 'ws'
-import { QwenOmniSession, resolveQwenEndpoint } from '../apps/desktop-agent/dist/qwen-session.js'
+import { QwenOmniSession, isRecoverableQwenTurnError, resolveQwenEndpoint } from '../apps/desktop-agent/dist/qwen-session.js'
+
+test('semantic VAD rejection is classified as a recoverable turn error', () => {
+  assert.equal(isRecoverableQwenTurnError('Input speech was not accepted by semantic turn detection'), true)
+  assert.equal(isRecoverableQwenTurnError(new Error("Voice 'Chelsie' is not supported")), false)
+})
 
 test('Qwen3.8 uses its workspace-specific regional endpoint', () => {
   assert.equal(

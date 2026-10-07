@@ -12,7 +12,7 @@ import {
   type ToolName,
 } from '@even-qwen/protocol'
 import { ConversationStore } from './conversation-store.js'
-import { QwenOmniSession, type QwenFunctionCall } from './qwen-session.js'
+import { QwenOmniSession, isRecoverableQwenTurnError, type QwenFunctionCall } from './qwen-session.js'
 import {
   QWEN_TOOLS,
   TOOL_CONFIRMATION,
@@ -248,6 +248,16 @@ class ClientConnection {
         },
         onToolCall: (call) => void this.handleToolCall(call),
         onError: (error) => {
+          if (isRecoverableQwenTurnError(error)) {
+            console.warn('[qwen] semantic VAD rejected a short or unclear utterance; continuing to listen')
+            this.currentResponseId = ''
+            this.send({
+              type: 'voice.mode.status', conversationId: this.conversationId, stage: 'listening',
+              detail: '未检测到有效语音，请继续说话',
+            })
+            this.resetSilenceTimer()
+            return
+          }
           console.error('[qwen]', error.message)
           this.send({ type: 'voice.mode.status', conversationId: this.conversationId, stage: 'error', detail: error.message })
         },

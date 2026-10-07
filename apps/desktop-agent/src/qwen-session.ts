@@ -54,6 +54,11 @@ function stringValue(value: unknown): string {
   return typeof value === 'string' ? value : ''
 }
 
+export function isRecoverableQwenTurnError(error: Error | string): boolean {
+  const message = typeof error === 'string' ? error : error.message
+  return /input speech was not accepted by semantic turn detection/i.test(message)
+}
+
 export class QwenOmniSession {
   private socket: WebSocket | null = null
   private ready = false
