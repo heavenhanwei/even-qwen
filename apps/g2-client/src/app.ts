@@ -35,6 +35,8 @@ const STORAGE_TOKEN = 'even-qwen.pairing-token'
 const STORAGE_CONVERSATION = 'even-qwen.last-conversation'
 const STREAM_UPDATE_MS = 200
 const PAGE_CHARS = 460
+const TAP_DEBOUNCE_MS = 220
+const DISPLAY_ECHO_GUARD_MS = 80
 
 const statusElement = document.querySelector<HTMLParagraphElement>('#status')!
 const detailsElement = document.querySelector<HTMLPreElement>('#details')!
@@ -67,13 +69,25 @@ let lastInputAt = 0
 let reconnectTimer: number | null = null
 let authenticationFailed = false
 let bridgeQueue: Promise<unknown> = Promise.resolve()
+let displayUpdateDepth = 0
+let displayEchoIgnoreUntil = 0
+let lastHandledTapAt = 0
 const unsubscribers: Array<() => void> = []
 let startupAgentStatus = '连接中'
 let startupQwenStatus = '等待'
 let startupDetail = ''
 
 function queueBridge<T>(action: () => Promise<T>): Promise<T> {
-  const next = bridgeQueue.then(action, action)
+  const guardedAction = async () => {
+    displayUpdateDepth += 1
+    try {
+      return await action()
+    } finally {
+      displayUpdateDepth = Math.max(0, displayUpdateDepth - 1)
+      displayEchoIgnoreUntil = Date.now() + DISPLAY_ECHO_GUARD_MS
+    }
+  }
+  const next = bridgeQueue.then(guardedAction, guardedAction)
   bridgeQueue = next.then(() => undefined, () => undefined)
   return next
 }
@@ -422,6 +436,15 @@ async function closeMicrophone(): Promise<void> {
 }
 
 async function handleTap(): Promise<void> {
+  if (pageMode === 'startup') {
+    if (authenticationFailed) {
+      setStartupStatus('认证失败', '等待', '请在手机端更新配对令牌')
+      return
+    }
+    setStartupStatus('正在重试', '等待')
+    connectAgent()
+    return
+  }
   if (pageMode === 'conversations') {
     await openSelectedConversation()
     return
@@ -465,19 +488,36 @@ async function exitApp(): Promise<void> {
   if (bridge && startupCreated) await queueBridge(() => bridge!.shutDownPageContainer(0))
 }
 
-function inputType(event: EvenHubEvent): OsEventTypeList | undefined {
-  return event.listEvent?.eventType ?? event.textEvent?.eventType ?? event.sysEvent?.eventType
+function explicitEventType(envelope?: { eventType?: OsEventTypeList }): OsEventTypeList | null {
+  return envelope?.eventType ?? null
+}
+
+function capturedContainer(envelope?: { containerID?: number }): boolean {
+  if (!envelope) return false
+  const activeContainer = ({ startup: 1, conversations: 11, voice: 21, approval: 31 })[pageMode]
+  return envelope.containerID === activeContainer
+}
+
+function inputType(event: EvenHubEvent): { type: OsEventTypeList | null; legacyClick: boolean } {
+  const explicitType = explicitEventType(event.listEvent)
+    ?? explicitEventType(event.textEvent)
+    ?? explicitEventType(event.sysEvent)
+  // CLICK_EVENT is protobuf value 0 and some Even App versions omit zero-valued
+  // fields. A physical Tap then arrives as a captured envelope without eventType.
+  const legacyClick = explicitType === null
+    && (Boolean(event.sysEvent) || capturedContainer(event.listEvent) || capturedContainer(event.textEvent))
+  return { type: explicitType ?? (legacyClick ? OsEventTypeList.CLICK_EVENT : null), legacyClick }
 }
 
 function handleInput(event: EvenHubEvent): void {
   if (event.audioEvent?.audioPcm && socket?.readyState === WebSocket.OPEN && microphoneOpen && voiceStage === 'listening') {
     socket.send(event.audioEvent.audioPcm)
   }
-  const type = inputType(event)
+  const { type, legacyClick } = inputType(event)
   if (event.listEvent?.currentSelectItemIndex !== undefined && pageMode === 'conversations') {
     selectedIndex = Math.max(0, Math.min(event.listEvent.currentSelectItemIndex, conversations.length))
   }
-  if (type === undefined) return
+  if (type === null) return
   const now = Date.now()
   if (now - lastInputAt < 40) return
   lastInputAt = now
@@ -492,6 +532,10 @@ function handleInput(event: EvenHubEvent): void {
     return
   }
   if (type === OsEventTypeList.CLICK_EVENT) {
+    if (legacyClick && (displayUpdateDepth > 0 || now < displayEchoIgnoreUntil)) return
+    if (now - lastHandledTapAt < TAP_DEBOUNCE_MS) return
+    lastHandledTapAt = now
+    void logClient('info', `tap received: page=${pageMode}, stage=${voiceStage}, legacy=${legacyClick}`)
     if (tapTimer !== null) clearTimeout(tapTimer)
     tapTimer = window.setTimeout(() => { tapTimer = null; void handleTap() }, 280)
     return

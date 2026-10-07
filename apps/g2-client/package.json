@@ -1,6 +1,6 @@
 {
   "name": "@even-qwen/g2-client",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@even-qwen/protocol": "0.2.1",
+    "@even-qwen/protocol": "0.2.2",
     "@evenrealities/even_hub_sdk": "^0.0.14"
   },
   "devDependencies": {
