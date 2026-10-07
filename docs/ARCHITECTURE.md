@@ -1,42 +1,17 @@
-# Initial architecture
+# Even Qwen architecture
 
 ```text
-Even G2
-  microphone / touch / display
-             │ Bluetooth
-             ▼
-Even Realities App WebView
-  apps/g2-client
-             │ authenticated WebSocket
-             ▼
-Desktop Agent
-  apps/desktop-agent
-  ├─ session and pairing boundary
-  ├─ VoiceProvider boundary
-  │  ├─ Qwen Omni realtime task-router adapter
-  │  └─ Paraformer realtime ASR fallback adapter
-  ├─ read-only-by-default Codex policy boundary
-  └─ Codex adapter
-       │ private stdio JSON-RPC
-       ▼
-  codex app-server
+G2 → Even App / EvenHub SDK → WSS → Even Qwen Agent → Qwen Omni
+                                      ├─ text session store
+                                      ├─ Even device RPC
+                                      └─ allowlisted desktop tools
 ```
 
-## Current protocol
+## Protocol v2
 
-The client sends JSON control messages and binary 16 kHz PCM frames. The desktop agent currently implements:
+JSON 控制消息始终携带 `conversationId`；回答携带 `responseId`；工具调用携带 `requestId`/`toolCallId`。音频是二进制 16 kHz、16-bit LE、mono PCM。Qwen semantic VAD 自动提交语音轮次。
 
-- `hello`
-- `ping`
-- `account.status`
-- `tasks.list`
-- `voice.start`
-- binary PCM audio frames
-- `voice.stop`
+Agent 不包含 Codex CLI、Codex 任务协议、app-server 或 Paraformer。Codex 只作为 `app_list`、`app_open`、`app_focus` 的固定应用 ID。
 
-The agent returns connection status, task lists, audio acknowledgements, voice-routing state, and Codex turn progress/results. Voice sessions buffer at most 60 seconds of PCM so the same utterance can be replayed to Paraformer if the primary Omni request fails.
-
-## Next milestone
-
-Add desktop approval handling for write-capable Codex turns and optional Qwen TTS playback. Destructive and external actions must remain desktop-confirmed.
+会话写入 `%LOCALAPPDATA%\\EvenQwen\\sessions`，最多 50 个；恢复时最多回放最近 20 条、32K 字符。Bridge 写操作串行，流式文本每 200 ms 合并一次。
 

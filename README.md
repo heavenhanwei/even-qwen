@@ -1,28 +1,24 @@
-# even-chatgpt
+# Even Qwen
 
-Voice-first Even G2 client for viewing and controlling local Codex tasks.
+基于 Even G2、EvenHub SDK 和 `qwen3.8-omni-flash-realtime` 的连续语音助手。Qwen Omni 统一负责语音理解、回答和工具决策；Codex 仅是可打开或切换的白名单 Windows 应用。
 
 ## Status
 
-The repository provides a working local voice-to-Codex path:
+实现范围：
 
-- an EvenHub/Vite client that renders connection state on the G2 display;
-- G2 microphone capture and 16 kHz PCM streaming;
-- a local WebSocket desktop agent;
-- a private stdio bridge to `codex app-server`;
-- Codex account-status and thread-list requests;
-- Qwen Omni realtime voice routing with Paraformer realtime ASR fallback;
-- voice-created Codex threads and voice turns on existing threads;
-- account and hardware setup documentation.
+- G2 端连续语音、实时字幕、回答分页、历史会话和工具确认；
+- Protocol v2 与经过配对令牌保护的 WebSocket；
+- Qwen semantic VAD 自动成轮，无需 Tap 提交；
+- 最多 50 个本地文本会话，不保存音频或密钥；
+- 固定桌面应用白名单与 HTTP/HTTPS、剪贴板工具；
+- 设备状态只暴露连接、电量、充电、佩戴和入盒状态。
 
 ## Prerequisites
 
 - Node.js 22.6 or newer
 - EvenHub CLI and simulator
-- Codex CLI
 - an Even Realities account for device testing
-- a ChatGPT/Codex login or OpenAI API key for Codex access
-- an Alibaba Cloud Model Studio API key and Beijing workspace ID for Qwen Omni and Paraformer
+- an Alibaba Cloud Model Studio API key for Qwen Omni
 
 See [Account setup](docs/ACCOUNT_SETUP.md) for the complete checklist.
 See [Deployment and public demo](docs/DEPLOYMENT.md) for portable-router,
@@ -33,7 +29,7 @@ public-WSS, packaging, and Even Hub publication instructions.
 ```powershell
 npm install
 Copy-Item .env.example .env
-npm run check:accounts
+npm run check:config -w @even-qwen/desktop-agent
 ```
 
 ## Run locally
@@ -56,31 +52,27 @@ Terminal 3:
 npm run simulator
 ```
 
-The G2 client defaults to `ws://127.0.0.1:8787` in the simulator. For physical glasses, follow the LAN and pairing instructions in [Account setup](docs/ACCOUNT_SETUP.md).
+应用默认连接 `wss://even-qwen.ifelse.work`。模拟器本地调试时在手机页面改为 `ws://127.0.0.1:8787`；详见 [部署说明](docs/DEPLOYMENT.md)。
 
 ## Current G2 controls
 
-- On launch, the client discovers recent user-facing Codex threads and highlights the first one.
-- The first list item, **+ New voice task**, creates a new Codex thread from speech.
-- Swipe up or down to move the task selection.
-- Long-press to refresh the task list.
-- Tap once to connect the configured voice provider and start recording. Partial Qwen/Paraformer transcripts are shown live on the glasses; tap again to close the microphone, finalize the transcript, and submit it to Codex.
-- Selecting an existing thread sends the spoken instruction to that thread.
-- Double-tap to exit the app.
-
-New voice tasks default to Codex's read-only sandbox. Set `CODEX_SANDBOX_MODE=workspace-write` only after explicitly accepting that spoken tasks may change workspace files.
+- 会话列表 Tap：创建或打开会话并进入连续语音。
+- 聆听中 Tap：退出语音模式，未成轮音频丢弃。
+- 回答中 Tap：中止回答并恢复聆听。
+- 工具确认页 Tap：批准；长按：拒绝。
+- 普通页面长按：返回/刷新会话列表。
+- 任意页面双击：立即退出。
 
 ## Verify
 
 ```powershell
 npm run typecheck
 npm run build
+npm test
+npm run pack:g2
 ```
 
 ## Security note
 
-Production builds do not embed the Agent URL or pairing token. Configure them on
-the phone companion page after installation. Keep provider keys and Codex auth on
-the desktop, and expose the Agent only through a TLS-protected tunnel with a
-strong pairing token; never open port 8787 directly to the internet.
+生产包不嵌入 API Key。Qwen Key 只存在桌面 Agent 的 `.env`；公网仅通过 TLS Tunnel 暴露 WSS，并使用强配对令牌。不要直接将 8787 端口暴露到互联网。
 

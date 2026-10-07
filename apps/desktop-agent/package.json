@@ -1,18 +1,17 @@
 {
-  "name": "@even-chatgpt/desktop-agent",
-  "version": "0.1.0",
+  "name": "@even-qwen/desktop-agent",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx src/index.ts",
-    "start": "node dist/index.js",
+    "dev": "tsx src/agent.ts",
+    "start": "node dist/agent.js",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "test:voice-adapters": "npm run build && node ../../scripts/test-voice-adapters.mjs",
-    "check:accounts": "tsx src/check-accounts.ts"
+    "check:config": "tsx src/check-config.ts"
   },
   "dependencies": {
-    "@even-chatgpt/protocol": "0.1.0",
+    "@even-qwen/protocol": "0.2.0",
     "dotenv": "^17.2.3",
     "ws": "^8.18.3"
   },

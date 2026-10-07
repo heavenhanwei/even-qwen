@@ -5,6 +5,6 @@
     "types": ["vite/client"],
     "noEmit": true
   },
-  "include": ["src", "vite.config.ts"]
+  "include": ["src/app.ts", "vite.config.ts"]
 }
 

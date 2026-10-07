@@ -1,6 +1,6 @@
 {
-  "name": "@even-chatgpt/g2-client",
-  "version": "0.1.0",
+  "name": "@even-qwen/g2-client",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@even-chatgpt/protocol": "0.1.0",
+    "@even-qwen/protocol": "0.2.0",
     "@evenrealities/even_hub_sdk": "^0.0.14"
   },
   "devDependencies": {

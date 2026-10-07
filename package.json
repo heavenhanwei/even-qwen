@@ -1,26 +1,22 @@
 {
-  "name": "even-chatgpt",
-  "version": "0.1.0",
+  "name": "even-qwen",
+  "version": "0.2.0",
   "private": true,
-  "description": "Voice-first Even G2 client for local Codex tasks and desktop tools.",
+  "description": "Qwen Omni voice assistant for Even G2 glasses.",
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
-    "postinstall": "npm run build -w @even-chatgpt/protocol",
-    "dev:g2": "npm run dev -w @even-chatgpt/g2-client",
-    "dev:agent": "npm run dev -w @even-chatgpt/desktop-agent",
-    "build": "npm run build -w @even-chatgpt/protocol && npm run build -w @even-chatgpt/g2-client && npm run build -w @even-chatgpt/desktop-agent",
-    "typecheck": "npm run build -w @even-chatgpt/protocol && npm run typecheck --workspaces --if-present",
-    "check:accounts": "npm run check:accounts -w @even-chatgpt/desktop-agent",
-    "check:voice": "npm run build -w @even-chatgpt/desktop-agent && node scripts/check-voice-providers.mjs",
-    "check:agent": "node scripts/check-agent.mjs",
-    "test:voice-live": "npm run build -w @even-chatgpt/desktop-agent && node scripts/test-live-voice.mjs",
-    "test:agent-live": "node scripts/test-agent-live.mjs",
+    "postinstall": "npm run build -w @even-qwen/protocol",
+    "dev:g2": "npm run dev -w @even-qwen/g2-client",
+    "dev:agent": "npm run dev -w @even-qwen/desktop-agent",
+    "build": "npm run build -w @even-qwen/protocol && npm run build -w @even-qwen/g2-client && npm run build -w @even-qwen/desktop-agent",
+    "typecheck": "npm run build -w @even-qwen/protocol && npm run typecheck --workspaces --if-present",
+    "test": "npm run build -w @even-qwen/protocol && npm run build -w @even-qwen/desktop-agent && node --test scripts/test-protocol-v2.mjs scripts/test-store.mjs scripts/test-tools.mjs scripts/test-qwen-session.mjs",
     "simulator": "evenhub-simulator http://localhost:5173 --automation-port 9898",
     "check:release-secrets": "node scripts/check-release-secrets.mjs",
-    "pack:g2": "npm run build -w @even-chatgpt/g2-client && npm run check:release-secrets && evenhub pack apps/g2-client/app.json apps/g2-client/dist -o even-chatgpt.ehpk"
+    "pack:g2": "npm run build -w @even-qwen/g2-client && npm run check:release-secrets && evenhub pack apps/g2-client/app.json apps/g2-client/dist --sdk-ver 0.0.14 -o even-qwen.ehpk"
   },
   "engines": {
     "node": ">=22.6"

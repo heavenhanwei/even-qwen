@@ -1,6 +1,6 @@
 {
-  "name": "@even-chatgpt/protocol",
-  "version": "0.1.0",
+  "name": "@even-qwen/protocol",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "exports": {

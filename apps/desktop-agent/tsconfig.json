@@ -5,6 +5,12 @@
     "types": ["node"],
     "noEmit": true
   },
-  "include": ["src"]
+  "include": [
+    "src/agent.ts",
+    "src/qwen-session.ts",
+    "src/conversation-store.ts",
+    "src/tool-registry.ts",
+    "src/check-config.ts"
+  ]
 }
 

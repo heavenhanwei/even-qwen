@@ -7,11 +7,12 @@ This repository contains two trust zones:
 
 Security invariants:
 
-- Never put API keys, Codex tokens, or long-lived pairing credentials in `VITE_*` variables.
-- Never expose `codex app-server` directly to the phone or network. The desktop agent owns its stdio connection.
+- Never put API keys or long-lived pairing credentials in `VITE_*` variables.
+- Do not add Codex CLI, Codex app-server, shell, arbitrary executable paths, or arbitrary process arguments. Codex is only a fixed allowlisted desktop application ID.
 - Validate every model-produced tool call before execution.
-- Read-only actions may run automatically. Writes require an explicit policy decision; destructive or external actions require desktop confirmation.
-- Do not commit `.env`, Codex auth caches, recordings, or user task transcripts.
+- Qwen Omni is the only speech, response, and tool-decision provider. Do not add fallback ASR or secondary model routing without a user-visible architecture change.
+- Read-only status and app-list operations may run automatically. App open/focus, browser navigation, and clipboard access require explicit G2 confirmation.
+- Do not commit `.env`, provider credentials, tunnel credentials, recordings, or user conversation files.
 
 Run `npm run typecheck` and `npm run build` before committing implementation changes.
 

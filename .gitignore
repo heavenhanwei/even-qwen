@@ -13,4 +13,10 @@ apps/*/.env.*
 !apps/*/.env.example
 .DS_Store
 Thumbs.db
+sessions/
+.even-qwen/
+cloudflared*.json
+cloudflared*.pem
+.even-qwen-*.png
+.old-simulator.png
 
