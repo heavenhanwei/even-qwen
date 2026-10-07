@@ -52,6 +52,7 @@ let selectedIndex = 0
 let activeConversationId = localStorage.getItem(STORAGE_CONVERSATION) || ''
 let activeMessages: ConversationMessage[] = []
 let deviceStatus: DeviceStatusSnapshot = { connected: false }
+let deviceStatusKnown = false
 let pendingApproval: PendingApproval | null = null
 let requestCounter = 0
 let microphoneOpen = false
@@ -64,8 +65,12 @@ let streamTimer: number | null = null
 let tapTimer: number | null = null
 let lastInputAt = 0
 let reconnectTimer: number | null = null
+let authenticationFailed = false
 let bridgeQueue: Promise<unknown> = Promise.resolve()
 const unsubscribers: Array<() => void> = []
+let startupAgentStatus = '连接中'
+let startupQwenStatus = '等待'
+let startupDetail = ''
 
 function queueBridge<T>(action: () => Promise<T>): Promise<T> {
   const next = bridgeQueue.then(action, action)
@@ -88,6 +93,33 @@ function setPhoneStatus(text: string, detail = ''): void {
   detailsElement.textContent = detail
 }
 
+function g2StatusText(): string {
+  if (!deviceStatusKnown) return '等待设备状态'
+  if (!deviceStatus.connected) return '未连接'
+  return Number.isFinite(deviceStatus.batteryLevel) ? `已连接 · ${deviceStatus.batteryLevel}%` : '已连接'
+}
+
+function startupText(): string {
+  const detail = startupDetail ? `\n\n${startupDetail}` : ''
+  return `Even Qwen\n\nAgent：${startupAgentStatus}\nQwen：${startupQwenStatus}\nG2：${g2StatusText()}${detail}\n\n双击退出`
+}
+
+async function updateStartupStatus(): Promise<void> {
+  if (!bridge || !startupCreated || pageMode !== 'startup') return
+  await queueBridge(() => bridge!.textContainerUpgrade(new TextContainerUpgrade({
+    containerID: 1,
+    containerName: 'startup-status',
+    content: startupText(),
+  })))
+}
+
+function setStartupStatus(agent: string, qwen: string, detail = ''): void {
+  startupAgentStatus = agent
+  startupQwenStatus = qwen
+  startupDetail = detail
+  void updateStartupStatus()
+}
+
 function textContainer(id: number, name: string, y: number, height: number, content: string, capture = false, brightness = 4) {
   return new TextContainerProperty({
     xPosition: 12, yPosition: y, width: 552, height, containerID: id, containerName: name,
@@ -101,7 +133,7 @@ async function createStartup(): Promise<void> {
   const result = await queueBridge(() => bridge!.createStartUpPageContainer(new CreateStartUpPageContainer({
     containerTotalNum: 1,
     textObject: [
-      textContainer(1, 'startup-status', 0, 288, 'Even Qwen\n\nAgent：连接中\nQwen：等待\nG2：等待设备状态\n\n双击退出', true),
+      textContainer(1, 'startup-status', 0, 288, startupText(), true),
     ],
   })))
   if (Number(result) !== 0) throw new Error(`启动页创建失败 (${String(result)})`)
@@ -205,26 +237,46 @@ function connectAgent(): void {
   if (reconnectTimer !== null) { clearTimeout(reconnectTimer); reconnectTimer = null }
   const url = localStorage.getItem(STORAGE_URL) || DEFAULT_AGENT_URL
   const token = localStorage.getItem(STORAGE_TOKEN) || DEFAULT_TOKEN
+  if (!token) {
+    authenticationFailed = true
+    setPhoneStatus('等待配对令牌', '请在手机端填写 Even Qwen Agent 的 pairing token 并保存。')
+    setStartupStatus('等待配置', '等待', '请在手机端填写配对令牌')
+    return
+  }
+  authenticationFailed = false
   setPhoneStatus('正在连接 Agent…', url)
-  socket = new WebSocket(url)
-  socket.binaryType = 'arraybuffer'
-  socket.addEventListener('open', () => {
+  setStartupStatus('连接中', '等待')
+  const connectingSocket = new WebSocket(url)
+  socket = connectingSocket
+  connectingSocket.binaryType = 'arraybuffer'
+  connectingSocket.addEventListener('open', () => {
+    if (socket !== connectingSocket) return
     setPhoneStatus('Agent 已连接', url)
+    setStartupStatus('认证中', '等待')
     send({ type: 'hello', token, clientName: 'Even Qwen G2' }, activeConversationId)
     sendDeviceStatus()
   })
-  socket.addEventListener('message', (event) => {
+  connectingSocket.addEventListener('message', (event) => {
+    if (socket !== connectingSocket) return
     if (typeof event.data !== 'string') return
     try { void handleServerMessage(JSON.parse(event.data) as ServerMessage) }
     catch (error) { void logClient('error', `无法解析 Agent 消息: ${String(error)}`) }
   })
-  socket.addEventListener('close', () => {
+  connectingSocket.addEventListener('close', () => {
+    if (socket !== connectingSocket) return
+    socket = null
+    if (authenticationFailed) return
     setPhoneStatus('Agent 已断开，正在重连…', url)
+    setStartupStatus('已断开', '等待', '正在重连…')
     voiceStage = 'error'
     void closeMicrophone()
     if (foreground) reconnectTimer = window.setTimeout(connectAgent, 1500)
   })
-  socket.addEventListener('error', () => setPhoneStatus('Agent 连接失败', '检查 WSS 路由、Agent 服务和配对令牌。'))
+  connectingSocket.addEventListener('error', () => {
+    if (socket !== connectingSocket) return
+    setPhoneStatus('Agent 连接失败', '检查 WSS 路由、Agent 服务和配对令牌。')
+    setStartupStatus('连接失败', '等待', '请在手机端检查 WSS 地址')
+  })
 }
 
 async function handleServerMessage(message: ServerMessage): Promise<void> {
@@ -235,6 +287,8 @@ async function handleServerMessage(message: ServerMessage): Promise<void> {
   }
   if (message.type === 'ready') {
     conversations = message.conversations
+    authenticationFailed = false
+    setStartupStatus('已连接', message.qwenReady ? '已就绪' : 'Key 未配置')
     setPhoneStatus(message.qwenReady ? 'Even Qwen 已就绪' : 'Agent 已连接，Qwen Key 未配置')
     await rebuildConversations()
     return
@@ -314,6 +368,12 @@ async function handleServerMessage(message: ServerMessage): Promise<void> {
   }
   if (message.type === 'error') {
     setPhoneStatus(`错误：${message.message}`)
+    if (message.code === 'unauthorized') {
+      authenticationFailed = true
+      setStartupStatus('认证失败', '等待', '配对令牌无效，请在手机端更新')
+    } else if (pageMode === 'startup') {
+      setStartupStatus('错误', '等待', message.message.slice(0, 80))
+    }
     if (pageMode === 'voice') {
       pages = paginate(`错误：${message.message}`)
       pageIndex = 0
@@ -478,9 +538,22 @@ async function initialize(): Promise<void> {
   tokenInput.value = localStorage.getItem(STORAGE_TOKEN) || DEFAULT_TOKEN
   bridge = await waitForEvenAppBridge()
   unsubscribers.push(bridge.onLaunchSource((source) => void logClient('info', `launch source: ${source}`)))
-  unsubscribers.push(bridge.onDeviceStatusChanged((status) => { deviceStatus = sanitizeDevice(status); sendDeviceStatus() }))
+  unsubscribers.push(bridge.onDeviceStatusChanged((status) => {
+    deviceStatusKnown = true
+    deviceStatus = sanitizeDevice(status)
+    void updateStartupStatus()
+    sendDeviceStatus()
+  }))
   unsubscribers.push(bridge.onEvenHubEvent(handleInput))
   await createStartup()
+  try {
+    const deviceInfo = await bridge.getDeviceInfo()
+    deviceStatusKnown = true
+    deviceStatus = sanitizeDevice(deviceInfo?.status)
+    await updateStartupStatus()
+  } catch {
+    deviceStatusKnown = false
+  }
   connectAgent()
 }
 
@@ -488,8 +561,10 @@ form.addEventListener('submit', (event) => {
   event.preventDefault()
   localStorage.setItem(STORAGE_URL, urlInput.value.trim())
   localStorage.setItem(STORAGE_TOKEN, tokenInput.value)
-  socket?.close(1000, 'settings changed')
+  authenticationFailed = false
+  const previousSocket = socket
   socket = null
+  previousSocket?.close(1000, 'settings changed')
   connectAgent()
 })
 

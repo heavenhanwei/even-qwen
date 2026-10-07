@@ -52,7 +52,7 @@ Terminal 3:
 npm run simulator
 ```
 
-应用默认连接 `wss://even-qwen.ifelse.work`。模拟器本地调试时在手机页面改为 `ws://127.0.0.1:8787`；详见 [部署说明](docs/DEPLOYMENT.md)。
+应用默认连接 `wss://even-qwen.ifelse.work`。模拟器本地调试时在手机页面改为 `ws://127.0.0.1:8788`；详见 [部署说明](docs/DEPLOYMENT.md)。
 
 ## Current G2 controls
 
@@ -74,5 +74,5 @@ npm run pack:g2
 
 ## Security note
 
-生产包不嵌入 API Key。Qwen Key 只存在桌面 Agent 的 `.env`；公网仅通过 TLS Tunnel 暴露 WSS，并使用强配对令牌。不要直接将 8787 端口暴露到互联网。
+生产包不嵌入 API Key。Qwen Key 只存在桌面 Agent 的 `.env`；公网仅通过 TLS Tunnel 暴露 WSS，并使用强配对令牌。不要直接将 8788 端口暴露到互联网。
 

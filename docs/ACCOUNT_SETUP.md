@@ -40,7 +40,7 @@ The default binding is loopback-only and works with the simulator. To test physi
 
 1. Generate a long random `AGENT_PAIRING_TOKEN`.
 2. Set `AGENT_BIND_HOST=0.0.0.0`.
-3. Set `VITE_AGENT_WS_URL=ws://<computer-lan-ip>:8787`.
+3. Set `VITE_AGENT_WS_URL=ws://<computer-lan-ip>:8788`.
 4. Set `VITE_AGENT_PAIRING_TOKEN` to the same temporary development token.
 5. Add the exact agent origin to the `network` whitelist in `apps/g2-client/app.json` before packaging.
 6. Restrict Windows Firewall access to the Private network profile.

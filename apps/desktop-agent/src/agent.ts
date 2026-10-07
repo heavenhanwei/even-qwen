@@ -25,7 +25,7 @@ import {
 loadEnvironment({ path: fileURLToPath(new URL('../../../.env', import.meta.url)), quiet: true })
 
 const bindHost = process.env.AGENT_BIND_HOST || '127.0.0.1'
-const port = Number(process.env.AGENT_PORT || 8787)
+const port = Number(process.env.AGENT_PORT || 8788)
 const pairingToken = process.env.AGENT_PAIRING_TOKEN || ''
 const qwenApiKey = process.env.DASHSCOPE_API_KEY || ''
 const qwenWorkspaceId = process.env.DASHSCOPE_WORKSPACE_ID || undefined

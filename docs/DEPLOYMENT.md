@@ -9,7 +9,7 @@ Even G2
   -> Even phone app / packaged WebView
   -> wss://even-qwen.ifelse.work
   -> outbound-only tunnel
-  -> ws://127.0.0.1:8787 desktop Agent
+  -> ws://127.0.0.1:8788 desktop Agent
   -> Qwen Omni + allowlisted Windows tools
 ```
 
@@ -26,7 +26,7 @@ glasses:
    computer.
 2. Reserve a stable computer address in the router.
 3. Bind the Agent to the private interface with a strong pairing token.
-4. Enter `ws://<computer-ip>:8787` and the pairing token in the phone page.
+4. Enter `ws://<computer-ip>:8788` and the pairing token in the phone page.
 5. Keep Windows Firewall restricted to the router's private subnet.
 
 Public venue Wi-Fi is not recommended because client isolation commonly blocks
@@ -44,7 +44,7 @@ Keep these values only in the ignored root `.env`:
 
 ```dotenv
 AGENT_BIND_HOST=127.0.0.1
-AGENT_PORT=8787
+AGENT_PORT=8788
 AGENT_PAIRING_TOKEN=<at-least-32-random-bytes>
 ```
 
@@ -59,7 +59,7 @@ npm run dev:agent
 在 Cloudflare 的现有 Tunnel 中新增独立 Public Hostname：
 
 ```text
-even-qwen.ifelse.work → http://127.0.0.1:8787
+even-qwen.ifelse.work → http://127.0.0.1:8788
 ```
 
 客户端使用：
@@ -76,7 +76,7 @@ repository. The G2 client connects to the public endpoint as:
 wss://even-qwen.ifelse.work
 ```
 
-The tunnel is outbound-only, so port 8787 does not need to be opened on the
+The tunnel is outbound-only, so port 8788 does not need to be opened on the
 router. The pairing token is still required at the application layer.
 
 ### 3. Declare the exact production host
@@ -119,6 +119,14 @@ Open the Even Qwen companion page and enter:
 
 Select **Save and reconnect**. Never put the pairing token in `app.json`, a
 `VITE_*` production variable, Git, screenshots, or the Even Hub listing.
+
+The glasses startup page reports the failing phase directly:
+
+- **等待配置**: enter the pairing token on the phone companion page.
+- **认证失败**: the phone has an old or incorrect token; replace it with the
+  `AGENT_PAIRING_TOKEN` from this project's ignored `.env`.
+- **连接失败**: verify the WSS hostname, tunnel route, and local Agent process.
+- **G2 未连接**: reconnect the glasses in the Even app before starting voice mode.
 
 ## Even Hub publication
 
@@ -171,6 +179,6 @@ Agent 可部署到 Windows Server 并通过 Cloudflare Tunnel 提供 WSS。此�
 - Use `wss://`, never public plaintext `ws://`.
 - Rotate the pairing token before every external demo and after a lost phone.
 - Stop the Agent and tunnel when the demo ends.
-- Confirm the process does not expose port 8787 through Windows Firewall or router forwarding.
+- Confirm the process does not expose port 8788 through Windows Firewall or router forwarding.
 - Do not commit `.ehpk`, `dist`, logs, audio samples, or local credential files.
 
