@@ -1,7 +1,18 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { WebSocketServer } from 'ws'
-import { QwenOmniSession } from '../apps/desktop-agent/dist/qwen-session.js'
+import { QwenOmniSession, resolveQwenEndpoint } from '../apps/desktop-agent/dist/qwen-session.js'
+
+test('Qwen3.8 uses its workspace-specific regional endpoint', () => {
+  assert.equal(
+    resolveQwenEndpoint({ workspaceId: 'ws-example', region: 'cn-beijing', model: 'qwen3.8-omni-flash-realtime' }),
+    'wss://ws-example.cn-beijing.maas.aliyuncs.com/api-ws/v1/realtime?model=qwen3.8-omni-flash-realtime',
+  )
+  assert.throws(
+    () => resolveQwenEndpoint({ region: 'cn-beijing', model: 'qwen3.8-omni-flash-realtime' }),
+    /DASHSCOPE_WORKSPACE_ID is required/,
+  )
+})
 
 test('Qwen session configures semantic VAD, text modality and disabled search', async () => {
   const server = new WebSocketServer({ host: '127.0.0.1', port: 0 })
@@ -30,6 +41,15 @@ test('Qwen session configures semantic VAD, text modality and disabled search', 
   assert.deepEqual(update.session.modalities, ['text'])
   assert.deepEqual(update.session.turn_detection, { type: 'semantic_vad', threshold: 0.5, silence_duration_ms: 800 })
   assert.equal(update.session.enable_search, false)
+  assert.deepEqual(update.session.audio, {
+    input: {
+      format: {
+        type: 'pcm', sample_rate: 16_000, sample_format: 's16le', channels: 1,
+        packing: 'interleaved', channel_layout: 'mono',
+      },
+    },
+    output: { voice: 'Tina' },
+  })
   session.close()
   await new Promise((resolve) => server.close(resolve))
 })

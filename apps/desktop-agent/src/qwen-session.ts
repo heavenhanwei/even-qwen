@@ -35,8 +35,13 @@ export type QwenSessionOptions = {
 
 type JsonObject = Record<string, unknown>
 
-function endpoint(options: QwenSessionOptions): string {
+export function resolveQwenEndpoint(options: Pick<QwenSessionOptions, 'endpointOverride' | 'model' | 'region' | 'workspaceId'>): string {
   if (options.endpointOverride) return options.endpointOverride
+  if (options.model.startsWith('qwen3.8-')) {
+    if (!options.workspaceId) throw new Error('DASHSCOPE_WORKSPACE_ID is required for Qwen3.8 Realtime')
+    if (!/^[a-zA-Z0-9-]+$/.test(options.workspaceId)) throw new Error('DASHSCOPE_WORKSPACE_ID contains invalid characters')
+    return `wss://${options.workspaceId}.${options.region}.maas.aliyuncs.com/api-ws/v1/realtime?model=${encodeURIComponent(options.model)}`
+  }
   const host = options.region === 'ap-southeast-1' ? 'dashscope-intl.aliyuncs.com' : 'dashscope.aliyuncs.com'
   return `wss://${host}/api-ws/v1/realtime?model=${encodeURIComponent(options.model)}`
 }
@@ -65,7 +70,7 @@ export class QwenOmniSession {
     await new Promise<void>((resolve, reject) => {
       const headers: Record<string, string> = { Authorization: `Bearer ${this.options.apiKey}` }
       if (this.options.workspaceId) headers['X-DashScope-WorkSpace'] = this.options.workspaceId
-      const socket = new WebSocket(endpoint(this.options), { headers, handshakeTimeout: 15_000 })
+      const socket = new WebSocket(resolveQwenEndpoint(this.options), { headers, handshakeTimeout: 15_000 })
       this.socket = socket
       let settled = false
       let initTimeout: NodeJS.Timeout | undefined
@@ -79,7 +84,15 @@ export class QwenOmniSession {
           type: 'session.update',
           session: {
             modalities: ['text'],
-            input_audio_format: 'pcm16',
+            audio: {
+              input: {
+                format: {
+                  type: 'pcm', sample_rate: 16_000, sample_format: 's16le', channels: 1,
+                  packing: 'interleaved', channel_layout: 'mono',
+                },
+              },
+              output: { voice: 'Tina' },
+            },
             turn_detection: { type: 'semantic_vad', threshold: 0.5, silence_duration_ms: 800 },
             enable_search: false,
             instructions: [
