@@ -93,23 +93,20 @@ export class QwenOmniSession {
           },
         })
       })
-      socket.on('message', (data) => this.handleMessage(data.toString()))
+      socket.on('message', (data) => {
+        this.handleMessage(data.toString())
+        if (this.ready && !settled) {
+          if (initTimeout) clearTimeout(initTimeout)
+          settled = true
+          resolve()
+        }
+      })
       socket.once('error', fail)
       socket.once('close', (code, reason) => {
         this.ready = false
         if (!this.closed) fail(new Error(`Qwen connection closed (${code}): ${reason.toString()}`))
       })
-      const readyCheck = setInterval(() => {
-        if (!this.ready) return
-        clearInterval(readyCheck)
-        if (!settled) {
-          if (initTimeout) clearTimeout(initTimeout)
-          settled = true
-          resolve()
-        }
-      }, 20)
       initTimeout = setTimeout(() => {
-        clearInterval(readyCheck)
         if (!settled) fail(new Error('Qwen session initialization timed out'))
       }, 20_000)
     })

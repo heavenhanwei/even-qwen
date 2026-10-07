@@ -1,5 +1,6 @@
-import 'dotenv/config'
 import { randomUUID, timingSafeEqual } from 'node:crypto'
+import { fileURLToPath } from 'node:url'
+import { config as loadEnvironment } from 'dotenv'
 import { WebSocketServer, type RawData, type WebSocket } from 'ws'
 import {
   PROTOCOL_VERSION,
@@ -20,6 +21,8 @@ import {
   redactedArguments,
   validateToolCall,
 } from './tool-registry.js'
+
+loadEnvironment({ path: fileURLToPath(new URL('../../../.env', import.meta.url)), quiet: true })
 
 const bindHost = process.env.AGENT_BIND_HOST || '127.0.0.1'
 const port = Number(process.env.AGENT_PORT || 8787)
