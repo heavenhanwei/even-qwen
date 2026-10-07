@@ -1,6 +1,6 @@
 {
   "name": "@even-qwen/desktop-agent",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "private": true,
   "type": "module",
   "scripts": {
@@ -11,7 +11,7 @@
     "check:config": "tsx src/check-config.ts"
   },
   "dependencies": {
-    "@even-qwen/protocol": "0.2.2",
+    "@even-qwen/protocol": "0.2.3",
     "dotenv": "^17.2.3",
     "ws": "^8.18.3"
   },

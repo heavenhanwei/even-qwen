@@ -337,7 +337,7 @@ async function handleServerMessage(message: ServerMessage): Promise<void> {
     return
   }
   if (message.type === 'transcript.delta') {
-    transcript += message.delta
+    transcript = message.snapshot ? message.delta : transcript + message.delta
     scheduleStreamUpdate()
     return
   }

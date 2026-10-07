@@ -15,6 +15,7 @@ export type QwenSessionEvents = {
   onSpeechStopped(responseId: string): void
   onTranscriptDelta(responseId: string, delta: string): void
   onTranscriptFinal(responseId: string, text: string): void
+  onTranscriptFailed(error: Error): void
   onAssistantDelta(responseId: string, delta: string): void
   onAssistantFinal(responseId: string, text: string): void
   onCancelled(responseId: string): void
@@ -99,6 +100,7 @@ export class QwenOmniSession {
               output: { voice: 'Tina' },
             },
             turn_detection: { type: 'semantic_vad', threshold: 0.5, silence_duration_ms: 800 },
+            input_audio_transcription: { model: 'qwen3-asr-flash-realtime' },
             enable_search: false,
             instructions: [
               '你是 Even Qwen，是运行在 Even G2 智能眼镜上的中文语音助手。',
@@ -199,11 +201,17 @@ export class QwenOmniSession {
         return
       }
       if (type.endsWith('input_audio_transcription.delta')) {
-        this.options.events.onTranscriptDelta(responseId || stringValue(event.item_id), stringValue(event.delta))
+        const preview = `${stringValue(event.text)}${stringValue(event.stash)}` || stringValue(event.delta)
+        this.options.events.onTranscriptDelta(stringValue(event.item_id) || responseId, preview)
         return
       }
       if (type.endsWith('input_audio_transcription.completed')) {
-        this.options.events.onTranscriptFinal(responseId || stringValue(event.item_id), stringValue(event.transcript))
+        this.options.events.onTranscriptFinal(stringValue(event.item_id) || responseId, stringValue(event.transcript))
+        return
+      }
+      if (type.endsWith('input_audio_transcription.failed')) {
+        const error = asObject(event.error)
+        this.options.events.onTranscriptFailed(new Error(stringValue(error.message) || 'Input audio transcription failed'))
         return
       }
       if (type === 'response.created') {

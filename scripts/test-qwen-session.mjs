@@ -25,18 +25,28 @@ test('Qwen session configures semantic VAD, text modality and disabled search', 
   const address = server.address()
   assert.equal(typeof address, 'object')
   const received = []
-  server.on('connection', (socket) => socket.on('message', (raw) => {
-    const message = JSON.parse(raw.toString())
-    received.push(message)
-    if (message.type === 'session.update') socket.send(JSON.stringify({ type: 'session.updated' }))
-  }))
+  let serverSocket
+  server.on('connection', (socket) => {
+    serverSocket = socket
+    socket.on('message', (raw) => {
+      const message = JSON.parse(raw.toString())
+      received.push(message)
+      if (message.type === 'session.update') socket.send(JSON.stringify({ type: 'session.updated' }))
+    })
+  })
   let ready = false
+  let transcriptPreview = ''
+  let transcriptFinal = ''
+  let transcriptFailures = 0
   const session = new QwenOmniSession({
     apiKey: 'test', region: 'cn-beijing', model: 'qwen3.8-omni-flash-realtime',
     endpointOverride: `ws://127.0.0.1:${address.port}`, history: [], tools: [],
     events: {
-      onReady: () => { ready = true }, onSpeechStarted() {}, onSpeechStopped() {}, onTranscriptDelta() {},
-      onTranscriptFinal() {}, onAssistantDelta() {}, onAssistantFinal() {}, onCancelled() {}, onToolCall() {},
+      onReady: () => { ready = true }, onSpeechStarted() {}, onSpeechStopped() {},
+      onTranscriptDelta(_responseId, text) { transcriptPreview = text },
+      onTranscriptFinal(_responseId, text) { transcriptFinal = text },
+      onTranscriptFailed() { transcriptFailures += 1 },
+      onAssistantDelta() {}, onAssistantFinal() {}, onCancelled() {}, onToolCall() {},
       onError(error) { throw error },
     },
   })
@@ -46,6 +56,7 @@ test('Qwen session configures semantic VAD, text modality and disabled search', 
   assert.deepEqual(update.session.modalities, ['text'])
   assert.deepEqual(update.session.turn_detection, { type: 'semantic_vad', threshold: 0.5, silence_duration_ms: 800 })
   assert.equal(update.session.enable_search, false)
+  assert.deepEqual(update.session.input_audio_transcription, { model: 'qwen3-asr-flash-realtime' })
   assert.deepEqual(update.session.audio, {
     input: {
       format: {
@@ -55,6 +66,19 @@ test('Qwen session configures semantic VAD, text modality and disabled search', 
     },
     output: { voice: 'Tina' },
   })
+  serverSocket.send(JSON.stringify({
+    type: 'conversation.item.input_audio_transcription.delta', item_id: 'input-1', text: '你好', stash: '，世界',
+  }))
+  serverSocket.send(JSON.stringify({
+    type: 'conversation.item.input_audio_transcription.completed', item_id: 'input-1', transcript: '你好，世界。',
+  }))
+  serverSocket.send(JSON.stringify({
+    type: 'conversation.item.input_audio_transcription.failed', item_id: 'input-2', error: { message: 'test failure' },
+  }))
+  await new Promise((resolve) => setImmediate(resolve))
+  assert.equal(transcriptPreview, '你好，世界')
+  assert.equal(transcriptFinal, '你好，世界。')
+  assert.equal(transcriptFailures, 1)
   session.close()
   await new Promise((resolve) => server.close(resolve))
 })

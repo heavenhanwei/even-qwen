@@ -222,11 +222,14 @@ class ClientConnection {
           this.send({ type: 'speech.stopped', conversationId: this.conversationId, responseId })
           this.send({ type: 'voice.mode.status', conversationId: this.conversationId, stage: 'thinking' })
         },
-        onTranscriptDelta: (responseId, delta) => this.send({ type: 'transcript.delta', conversationId: this.conversationId, responseId, delta }),
+        onTranscriptDelta: (responseId, delta) => this.send({
+          type: 'transcript.delta', conversationId: this.conversationId, responseId, delta, snapshot: true,
+        }),
         onTranscriptFinal: (responseId, text) => {
           this.send({ type: 'transcript.final', conversationId: this.conversationId, responseId, text })
           if (text.trim()) void store.append(this.conversationId, 'user', text)
         },
+        onTranscriptFailed: (error) => console.warn('[qwen] input transcription failed:', error.message),
         onAssistantDelta: (responseId, delta) => {
           this.currentResponseId = responseId
           this.resetSilenceTimer()

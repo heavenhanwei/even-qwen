@@ -80,7 +80,7 @@ export type ServerMessage =
   | (ServerEnvelope & { type: 'voice.mode.status'; stage: VoiceStage; detail?: string })
   | (ServerEnvelope & { type: 'speech.started'; responseId?: string })
   | (ServerEnvelope & { type: 'speech.stopped'; responseId?: string })
-  | (ServerEnvelope & { type: 'transcript.delta'; responseId: string; delta: string })
+  | (ServerEnvelope & { type: 'transcript.delta'; responseId: string; delta: string; snapshot?: boolean })
   | (ServerEnvelope & { type: 'transcript.final'; responseId: string; text: string })
   | (ServerEnvelope & { type: 'assistant.delta'; responseId: string; delta: string })
   | (ServerEnvelope & { type: 'assistant.final'; responseId: string; text: string })
